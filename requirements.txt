@@ -1,0 +1,11 @@
+librosa
+noisereduce
+torch
+torchaudio
+torchmetrics
+torchvision
+torchinfo
+notebook
+datasets
+lightning
+numpy
