@@ -1,0 +1,5 @@
+# configs.yaml
+sample_rate: 22050
+n_fft: 1024
+hop_size: 256
+segment_seconds: 2
