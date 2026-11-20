@@ -11,3 +11,4 @@ datasets
 lightning
 numpy
 matplotlib
+soundfile
