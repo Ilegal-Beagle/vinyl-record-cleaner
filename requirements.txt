@@ -5,7 +5,9 @@ torchaudio
 torchmetrics
 torchvision
 torchinfo
+torchcodec
 notebook
 datasets
 lightning
 numpy
+matplotlib
