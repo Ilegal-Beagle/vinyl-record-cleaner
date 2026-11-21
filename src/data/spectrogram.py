@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 from scipy.signal import stft
 import sys
 
-def create_spectrogram(file_path):
+def create_spectrogram(audio: np.ndarray, sample_rate: int):
 
-    data = sf.read(file_path)
+    # data = sf.read(file_path)
 
-    audio, sample_rate = data
+    # audio, sample_rate = data
 
     # Convert stereo to mono
     if audio.ndim == 2:

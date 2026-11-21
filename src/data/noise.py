@@ -2,11 +2,11 @@ import numpy as np
 import soundfile as sf
 import sys
 
-def add_noise(file_path):
+def add_noise(audio: np.ndarray, sample_rate: int):
 
-    data = sf.read(file_path)
+    # data = sf.read(file_path)
 
-    audio, sample_rate = data
+    # audio, sample_rate = data
 
     duration = len(audio) / sample_rate
 
@@ -19,7 +19,7 @@ def add_noise(file_path):
     # We also randomly add hissing, clicks, bursts of static, and a continuous crackle to give the model a good variation of noise types and combinations.
     # SNR is used to scale the hiss volume relative to the volume of the audio as it may vary.
     
-    if np.random.random() > 0.2:
+    if np.random.random() > 0.0:
 
         # HISS ------------------
         
@@ -34,10 +34,10 @@ def add_noise(file_path):
 
         # CLICKS ------------------
         
-        if np.random.random() < 0.2:
-            num_clicks = 0
-        else:
-            num_clicks = np.random.randint(1, 31)
+        # if np.random.random() < 0.2:
+        #     num_clicks = 0
+        # else:
+        num_clicks = np.random.randint(1, 31)
 
         # Add clicks by picking a random position and amplitude for each click to be added.
         for i in range(num_clicks):
