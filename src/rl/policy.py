@@ -1,8 +1,6 @@
 from torch.distributions import Normal
-import numpy as np
 import torch.nn as nn
 import torch
-from torchinfo import summary
 
 class Policy(nn.Module):
     def __init__(self, settings_shape, **kwargs):
@@ -23,12 +21,18 @@ class Policy(nn.Module):
         # this starts wide, as the network is not confident in its configuration
         # after more runs are performed, it should become more confident and
         # lower the number. Parameter makes this change during training
-        self.log_std = nn.Parameter(torch.full((settings_shape,), -0.5))
+        self.log_std = nn.Parameter(torch.full((settings_shape,), -1.5))
 
     # creates a normal distribution of settings to choose from
     def distribution(self, spec):
-        features = self.body(spec)                                  # the features from the conv2d
-        mean = torch.sigmoid(self.linear_layer(features))   # squash down the features
+        spec = torch.as_tensor(spec, dtype=torch.float32)
+        if spec.ndim == 2:            # (freq, time) -> (1, 1, freq, time)
+            spec = spec[None, None]
+        elif spec.ndim == 3:          # (B, freq, time) -> (B, 1, freq, time)
+            spec = spec[:, None]
+        spec = torch.log1p(spec)      # compress magnitude range (optional, but helps)
+        features = self.body(spec)
+        mean = torch.sigmoid(self.linear_layer(features))
         return Normal(mean, self.log_std.exp())
 
     def sample(self, spec):

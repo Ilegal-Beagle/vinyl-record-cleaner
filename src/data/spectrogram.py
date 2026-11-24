@@ -6,13 +6,9 @@ import sys
 
 def create_spectrogram(audio: np.ndarray, sample_rate: int):
 
-    # data = sf.read(file_path)
-
-    # audio, sample_rate = data
-
     # Convert stereo to mono
-    if audio.ndim == 2:
-        audio = np.mean(audio, axis=1)
+    # if audio.ndim == 2:
+    #     audio = np.mean(audio, axis=1)
 
     # Apply the Short-Time Fourier Transform
     frequencies, times, Zxx = stft(
