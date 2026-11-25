@@ -1,10 +1,10 @@
-import numpy as np
 import torch
 import auraloss
 from torch import Tensor
 from torchmetrics.functional.audio import scale_invariant_signal_distortion_ratio as si_sdr_tm
 
-spec_weight = 5
+spec_weight = 2
+damage_penalty_weight = 1
 
 spectral_loss = auraloss.freq.STFTLoss(
     fft_size=1024,
@@ -24,30 +24,11 @@ def delta_si_sdr(restored, noisy, reference):
 
 
 def spectral_distance(audio, reference):
-    audio = torch.as_tensor(
-        audio, dtype=torch.float32
-    ).reshape(1, 1, -1)
+    audio = torch.as_tensor(audio, dtype=torch.float32).reshape(1, 1, -1)
 
-    reference = torch.as_tensor(
-        reference, dtype=torch.float32
-    ).reshape(1, 1, -1)
+    reference = torch.as_tensor(reference, dtype=torch.float32).reshape(1, 1, -1)
 
     return spectral_loss(audio, reference).item()
-
-
-def delta_spectral(restored, noisy, reference):
-    before = spectral_distance(noisy, reference)
-    after = spectral_distance(restored, reference)
-
-    return before - after
-
-
-def reward(restored, noisy, reference, clip=(-10.0, 20.0)):
-    sdr = delta_si_sdr(restored, noisy, reference).item()
-    spectral = delta_spectral(restored, noisy, reference)
-
-    return float(np.clip(sdr + spec_weight * spectral, *clip))
-
 
 # Batched reward functions
 
@@ -69,32 +50,20 @@ def batch_spectrogram(audio, window):
 
 
 def batch_spectral_distance(estimated, reference):
-    convergence = torch.linalg.vector_norm(
-        reference - estimated, dim=(-2, -1)
-    ) / torch.linalg.vector_norm(
-        reference, dim=(-2, -1)
-    ).clamp_min(1e-8)
+    convergence = torch.linalg.vector_norm(reference - estimated, dim=(-2, -1)) / torch.linalg.vector_norm(reference, dim=(-2, -1)).clamp_min(1e-8)
 
-    log_distance = (
-        estimated.log() - reference.log()
-    ).abs().mean(dim=(-2, -1))
+    log_distance = (estimated.log() - reference.log()).abs().mean(dim=(-2, -1))
 
     return convergence + log_distance
 
 
 @torch.no_grad()
 def batch_reward(restored, noisy, clean, device):
-    restored = torch.as_tensor(
-        restored, dtype=torch.float32, device=device
-    )
+    restored = torch.as_tensor(restored, dtype=torch.float32, device=device)
+    
+    noisy = torch.as_tensor(noisy, dtype=torch.float32, device=device)
 
-    noisy = torch.as_tensor(
-        noisy, dtype=torch.float32, device=device
-    )
-
-    clean = torch.as_tensor(
-        clean, dtype=torch.float32, device=device
-    )
+    clean = torch.as_tensor(clean, dtype=torch.float32, device=device)
 
     sdr = batch_si_sdr(restored, clean) - batch_si_sdr(noisy, clean)
 
@@ -109,4 +78,8 @@ def batch_reward(restored, noisy, clean, device):
 
     spectral = before - after
 
-    return torch.clamp(sdr + spec_weight * spectral, -10.0, 20.0)
+    damage_penalty = torch.relu(-sdr)
+
+    reward = sdr + spec_weight * spectral - damage_penalty_weight * damage_penalty
+
+    return torch.clamp(reward, -10.0, 20.0)
