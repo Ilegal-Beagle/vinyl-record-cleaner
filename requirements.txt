@@ -12,3 +12,4 @@ lightning
 numpy
 matplotlib
 soundfile
+auraloss
