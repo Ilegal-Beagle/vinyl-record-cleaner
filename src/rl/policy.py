@@ -25,7 +25,7 @@ class Policy(nn.Module):
 
     # creates a normal distribution of settings to choose from
     def distribution(self, spec):
-        spec = torch.as_tensor(spec, dtype=torch.float32)
+        spec = torch.as_tensor(spec, dtype=torch.float32, device=self.log_std.device)       # support gpu training
         if spec.ndim == 2:            # (freq, time) -> (1, 1, freq, time)
             spec = spec[None, None]
         elif spec.ndim == 3:          # (B, freq, time) -> (B, 1, freq, time)
