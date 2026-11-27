@@ -3,19 +3,21 @@ import soundfile as sf
 import matplotlib.pyplot as plt
 from scipy.signal import stft
 import sys
+import yaml
+
+cfg = yaml.safe_load(open("configs.yaml"))
+
+N_FFT = cfg["n_fft"]
+HOP_SIZE = cfg["hop_size"]
 
 def create_spectrogram(audio: np.ndarray, sample_rate: int):
-
-    # Convert stereo to mono
-    # if audio.ndim == 2:
-    #     audio = np.mean(audio, axis=1)
 
     # Apply the Short-Time Fourier Transform
     frequencies, times, Zxx = stft(
         audio,
         fs=sample_rate,
-        nperseg=1024,
-        noverlap=512
+        nperseg=N_FFT,
+        noverlap=N_FFT - HOP_SIZE
     )
 
     # Convert the Fourier Transform into a magnitude spectrogram for the model to interpret
