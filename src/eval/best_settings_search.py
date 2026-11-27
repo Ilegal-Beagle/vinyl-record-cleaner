@@ -2,10 +2,11 @@
 import json
 import numpy as np
 from pathlib import Path
-from src.denoiser.apply import apply
+from src.denoiser.apply import apply_gpu
 from src.rl.reward import delta_si_sdr
+from tqdm import tqdm
 
-K = 6  # number of settings
+K = 8  # number of settings
 
 # Fixed (noisy, clean) pairs so every candidate is scored on identical data
 def make_pairs(clean_segments, sr, add_noise, n_pairs, seed=0, silence_rms=1e-3):
@@ -32,7 +33,7 @@ def make_pairs(clean_segments, sr, add_noise, n_pairs, seed=0, silence_rms=1e-3)
 def score(action, pairs, sr):
     vals = []
     for noisy, clean in pairs:
-        out = apply(noisy, sr, action)
+        out = apply_gpu(noisy, sr, action)        
         v = float(delta_si_sdr(out, noisy, clean))
 
         # make sure score is valid number
@@ -47,7 +48,10 @@ def random_search(pairs, sr, n_candidates=50, seed=0):
     rng = np.random.default_rng(seed)
     settings = rng.random((n_candidates, K))
     settings[0] = 0.5
-    scores = np.array([score(c, pairs, sr) for c in settings])
+    scores = np.array([
+        score(c, pairs, sr)
+        for c in tqdm(settings, desc="Random search")
+    ])    
     order = np.argsort(scores)[::-1]
     return settings[order], scores[order]
 
@@ -57,7 +61,7 @@ def refine(best, pairs, sr, rounds=3, n_local=20, sigma=0.15, seed=1):
     best, best_score = best.copy(), score(best, pairs, sr)
     for r in range(rounds):
         local = np.clip(best + rng.normal(0, sigma, (n_local, K)), 0, 1)
-        for c in local:
+        for c in tqdm(local, desc=f"Refinement {r + 1}/{rounds}"):
             s = score(c, pairs, sr)
             if s > best_score:
                 best, best_score = c, s
