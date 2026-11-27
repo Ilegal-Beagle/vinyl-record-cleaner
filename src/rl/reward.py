@@ -2,16 +2,21 @@ import torch
 import auraloss
 from torch import Tensor
 from torchmetrics.functional.audio import scale_invariant_signal_distortion_ratio as si_sdr_tm
+import yaml
+
+cfg = yaml.safe_load(open("configs.yaml"))
+
+N_FFT = cfg["n_fft"]
+HOP_SIZE = cfg["hop_size"]
 
 spec_weight = 2
-damage_penalty_weight = 1
+damage_penalty_weight = 2
 
 spectral_loss = auraloss.freq.STFTLoss(
-    fft_size=1024,
-    hop_size=256,
-    win_length=1024
+    fft_size=N_FFT,
+    hop_size=HOP_SIZE,
+    win_length=N_FFT
 )
-
 
 def si_sdr(estimate: Tensor, reference: Tensor):
     est = torch.as_tensor(estimate, dtype=torch.float32)
@@ -39,9 +44,9 @@ def batch_si_sdr(estimated, reference):
 def batch_spectrogram(audio, window):
     spec = torch.stft(
         audio,
-        n_fft=1024,
-        hop_length=256,
-        win_length=1024,
+        n_fft=N_FFT,
+        hop_length=HOP_SIZE,
+        win_length=N_FFT,
         window=window,
         return_complex=True
     )
@@ -67,7 +72,7 @@ def batch_reward(restored, noisy, clean, device):
 
     sdr = batch_si_sdr(restored, clean) - batch_si_sdr(noisy, clean)
 
-    window = torch.hann_window(1024, device=device)
+    window = torch.hann_window(N_FFT, device=device)
 
     restored_spec = batch_spectrogram(restored, window)
     noisy_spec = batch_spectrogram(noisy, window)
